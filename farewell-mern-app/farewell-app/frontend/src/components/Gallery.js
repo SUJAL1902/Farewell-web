@@ -5,6 +5,7 @@ import './Gallery.css';
 
 export default function Gallery({ refresh }) {
   const [images, setImages]     = useState([]);
+  const [viewMode, setViewMode] = useState('masonry');
   const [lightbox, setLightbox] = useState(null);
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const [toast, setToast]       = useState('');
@@ -65,9 +66,6 @@ export default function Gallery({ refresh }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [lightbox, lightboxIdx]);
 
-  // Duplicate items for seamless infinite loop
-  const loopItems = images.length > 0 ? [...images, ...images] : [];
-
   return (
     <section id="gallery" className="section gallery-section">
       {toast && <div className="gallery-toast">{toast}</div>}
@@ -79,9 +77,31 @@ export default function Gallery({ refresh }) {
           <h2 className="section-title">Our Gallery</h2>
           <p className="section-desc">Every frame holds a laugh we never want to forget.</p>
         </div>
+
+        {/* View Toggle Controls */}
+        {images.length > 0 && (
+          <div className="gallery-controls">
+            <div className="view-toggle">
+              <button
+                className={`toggle-btn ${viewMode === 'masonry' ? 'active' : ''}`}
+                onClick={() => setViewMode('masonry')}
+                title="Masonry View"
+              >
+                <span className="toggle-icon">▤</span> Masonry
+              </button>
+              <button
+                className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                onClick={() => setViewMode('grid')}
+                title="Classic Grid View"
+              >
+                <span className="toggle-icon">⚃</span> Grid
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Filmstrip */}
+      {/* Gallery Layout */}
       {images.length === 0 ? (
         <div className="container">
           <div className="empty-state">
@@ -90,17 +110,13 @@ export default function Gallery({ refresh }) {
           </div>
         </div>
       ) : (
-        <div className="filmstrip-outer">
-          {/* Soft fade edges */}
-          <div className="filmstrip-fade filmstrip-fade--left" />
-          <div className="filmstrip-fade filmstrip-fade--right" />
-
-          <div className="film-track" style={{ '--count': images.length }}>
-            {loopItems.map((img, i) => (
+        <div className="container">
+          <div className={`gallery-container ${viewMode === 'masonry' ? 'gallery-masonry' : 'gallery-grid'}`}>
+            {images.map((img, i) => (
               <div
-                key={`${img._id}-${i}`}
-                className="film-card"
-                onClick={() => openLightbox(img, i % images.length)}
+                key={img._id}
+                className="gallery-card fade-up"
+                onClick={() => openLightbox(img, i)}
               >
                 <img
                   src={img.url}
@@ -108,13 +124,13 @@ export default function Gallery({ refresh }) {
                   loading="lazy"
                   draggable={false}
                 />
-                <div className="film-overlay">
-                  <span className="film-zoom">⊕</span>
-                  {img.caption && <p className="film-caption">{img.caption}</p>}
+                <div className="gallery-overlay">
+                  <span className="gallery-zoom">⊕</span>
+                  {img.caption && <p className="gallery-caption">{img.caption}</p>}
                 </div>
-                {isAdmin && i < images.length && (
+                {isAdmin && (
                   <button
-                    className="film-delete"
+                    className="gallery-delete"
                     onClick={(e) => handleDelete(e, img._id)}
                     title="Delete"
                   >

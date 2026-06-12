@@ -1,24 +1,27 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Media = require('../models/Media');
 const { verifyAdmin, verifyGuest } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}${ext}`);
-  },
+// Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Cloudinary storage (files stored permanently in the cloud)
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: (req, file) => ({
+    folder: 'farewell',
+    resource_type: file.mimetype.startsWith('video') ? 'video' : 'image',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'],
+  }),
 });
 
 const fileFilter = (req, file, cb) => {
@@ -72,10 +75,10 @@ router.post('/upload', verifyAdmin, (req, res, next) => {
     const isVideo = req.file.mimetype.startsWith('video');
     const media = await Media.create({
       type: isVideo ? 'video' : 'image',
-      filename: req.file.filename,
+      filename: req.file.filename,   // Cloudinary public_id
       originalName: req.file.originalname,
       caption: req.body.caption || '',
-      url: `/uploads/${req.file.filename}`,
+      url: req.file.path,            // Full Cloudinary HTTPS URL
     });
 
     res.status(201).json(media);
@@ -90,8 +93,11 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
     const media = await Media.findById(req.params.id);
     if (!media) return res.status(404).json({ message: 'Not found' });
 
-    const filePath = path.join(__dirname, '../uploads', media.filename);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    // Delete from Cloudinary
+    const resourceType = media.type === 'video' ? 'video' : 'image';
+    if (media.filename) {
+      await cloudinary.uploader.destroy(media.filename, { resource_type: resourceType });
+    }
 
     await media.deleteOne();
     res.json({ message: 'Deleted successfully' });

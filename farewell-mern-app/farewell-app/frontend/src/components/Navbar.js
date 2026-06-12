@@ -7,7 +7,6 @@ const NAV_LINKS = [
   { label: 'Home',    href: '#hero' },
   { label: 'Gallery', href: '#gallery' },
   { label: 'Videos',  href: '#videos' },
-  { label: 'Quotes',  href: '#quotes' },
 ];
 
 export default function Navbar() {
