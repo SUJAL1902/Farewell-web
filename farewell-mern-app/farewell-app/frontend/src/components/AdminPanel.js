@@ -102,7 +102,18 @@ export default function AdminPanel({ onUpload }) {
         onClick={() => setOpen((p) => !p)}
         title="Admin Upload Panel"
       >
-        {open ? '✕' : '⊕'}
+        {open ? (
+          <svg className="fab-icon fab-icon--close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        ) : (
+          <svg className="fab-icon fab-icon--upload" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        )}
       </button>
 
       {/* Backdrop */}
@@ -149,7 +160,13 @@ export default function AdminPanel({ onUpload }) {
             </div>
           ) : (
             <div className="drop-placeholder">
-              <div className="drop-icon">📁</div>
+              <div className="drop-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="drop-svg">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
               <p className="drop-text">Drag & drop or <span>browse</span></p>
               <p className="drop-hint">Images max {MAX_IMAGE_MB} MB · Videos max {MAX_VIDEO_MB} MB</p>
             </div>

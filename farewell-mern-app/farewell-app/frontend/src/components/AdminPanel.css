@@ -26,7 +26,7 @@
 }
 
 .admin-fab.open {
-  transform: rotate(45deg) scale(1.05);
+  transform: rotate(180deg) scale(1.05);
 }
 
 /* ── Backdrop ── */
@@ -147,9 +147,22 @@
 }
 
 .drop-icon {
-  font-size: 2.8rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-bottom: 12px;
   opacity: 0.6;
+}
+
+.drop-svg {
+  stroke: var(--warm-gray);
+  transition: stroke 0.25s, transform 0.25s ease;
+}
+
+.drop-zone:hover .drop-svg,
+.drop-zone.dragging .drop-svg {
+  stroke: var(--amber);
+  transform: translateY(-3px);
 }
 
 .drop-text {
