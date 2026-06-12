@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import './Gallery.css';
@@ -9,7 +9,6 @@ export default function Gallery({ refresh }) {
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const [toast, setToast]       = useState('');
   const { isAdmin }             = useAuth();
-  const sectionRef              = useRef();
 
   const fetchImages = async () => {
     try {
@@ -20,16 +19,6 @@ export default function Gallery({ refresh }) {
 
   useEffect(() => { fetchImages(); }, [refresh]);
 
-  // Intersection observer for scroll-reveal
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add('visible'); }),
-      { threshold: 0.08 }
-    );
-    sectionRef.current?.querySelectorAll('.bento-item').forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [images]);
-
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
@@ -38,23 +27,33 @@ export default function Gallery({ refresh }) {
   const handleDelete = async (e, id) => {
     e.stopPropagation();
     if (!window.confirm('Delete this photo?')) return;
-    // Optimistic removal
     setImages((prev) => prev.filter((img) => img._id !== id));
     if (lightbox?._id === id) setLightbox(null);
     try {
       await api.delete(`/media/${id}`);
       showToast('Photo deleted.');
-    } catch (err) {
+    } catch {
       showToast('❌ Delete failed — are you logged in as admin?');
-      fetchImages(); // revert on error
+      fetchImages();
     }
   };
 
   const openLightbox = (img, idx) => { setLightbox(img); setLightboxIdx(idx); };
-  const prevImage = (e) => { e.stopPropagation(); const i = (lightboxIdx - 1 + images.length) % images.length; setLightbox(images[i]); setLightboxIdx(i); };
-  const nextImage = (e) => { e.stopPropagation(); const i = (lightboxIdx + 1) % images.length; setLightbox(images[i]); setLightboxIdx(i); };
 
-  // keyboard nav
+  const prevImage = (e) => {
+    e.stopPropagation();
+    const i = (lightboxIdx - 1 + images.length) % images.length;
+    setLightbox(images[i]);
+    setLightboxIdx(i);
+  };
+
+  const nextImage = (e) => {
+    e.stopPropagation();
+    const i = (lightboxIdx + 1) % images.length;
+    setLightbox(images[i]);
+    setLightboxIdx(i);
+  };
+
   useEffect(() => {
     if (!lightbox) return;
     const onKey = (e) => {
@@ -66,53 +65,67 @@ export default function Gallery({ refresh }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [lightbox, lightboxIdx]);
 
+  // Duplicate items for seamless infinite loop
+  const loopItems = images.length > 0 ? [...images, ...images] : [];
+
   return (
-    <section id="gallery" className="section" ref={sectionRef}>
-      {/* Toast */}
+    <section id="gallery" className="section gallery-section">
       {toast && <div className="gallery-toast">{toast}</div>}
 
+      {/* Section Header */}
       <div className="container">
         <div className="section-header">
           <span className="section-eyebrow">moments captured</span>
           <h2 className="section-title">Our Gallery</h2>
           <p className="section-desc">Every frame holds a laugh we never want to forget.</p>
         </div>
+      </div>
 
-        {images.length === 0 ? (
+      {/* Filmstrip */}
+      {images.length === 0 ? (
+        <div className="container">
           <div className="empty-state">
             <span>📷</span>
             <p>{isAdmin ? 'Upload your first photo using the panel →' : 'Photos coming soon…'}</p>
           </div>
-        ) : (
-          <div className="bento-grid">
-            {images.map((img, i) => (
+        </div>
+      ) : (
+        <div className="filmstrip-outer">
+          {/* Soft fade edges */}
+          <div className="filmstrip-fade filmstrip-fade--left" />
+          <div className="filmstrip-fade filmstrip-fade--right" />
+
+          <div className="film-track" style={{ '--count': images.length }}>
+            {loopItems.map((img, i) => (
               <div
-                key={img._id}
-                className={`bento-item ${i === 0 ? 'bento-item--featured' : ''}`}
-                onClick={() => openLightbox(img, i)}
+                key={`${img._id}-${i}`}
+                className="film-card"
+                onClick={() => openLightbox(img, i % images.length)}
               >
                 <img
                   src={img.url}
                   alt={img.caption || 'Memory'}
                   loading="lazy"
+                  draggable={false}
                 />
-                <div className="bento-overlay">
-                  {img.caption && <p className="bento-caption">{img.caption}</p>}
-                  {isAdmin && (
-                    <button
-                      className="bento-delete"
-                      onClick={(e) => handleDelete(e, img._id)}
-                      title="Delete photo"
-                    >
-                      🗑
-                    </button>
-                  )}
+                <div className="film-overlay">
+                  <span className="film-zoom">⊕</span>
+                  {img.caption && <p className="film-caption">{img.caption}</p>}
                 </div>
+                {isAdmin && i < images.length && (
+                  <button
+                    className="film-delete"
+                    onClick={(e) => handleDelete(e, img._id)}
+                    title="Delete"
+                  >
+                    🗑
+                  </button>
+                )}
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightbox && (
@@ -126,12 +139,11 @@ export default function Gallery({ refresh }) {
             </>
           )}
 
-          <img
-            src={lightbox.url}
-            alt={lightbox.caption || ''}
-            onClick={(e) => e.stopPropagation()}
-          />
-          {lightbox.caption && <p className="lightbox-caption">{lightbox.caption}</p>}
+          <div className="lightbox-inner" onClick={(e) => e.stopPropagation()}>
+            <img src={lightbox.url} alt={lightbox.caption || ''} />
+            {lightbox.caption && <p className="lightbox-caption">{lightbox.caption}</p>}
+          </div>
+
           <span className="lightbox-counter">{lightboxIdx + 1} / {images.length}</span>
         </div>
       )}

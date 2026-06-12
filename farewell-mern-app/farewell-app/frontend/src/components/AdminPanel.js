@@ -1,6 +1,11 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+
+const MAX_IMAGE_MB = 10;
+const MAX_VIDEO_MB = 50;
+const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
+const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
 import './AdminPanel.css';
 
 export default function AdminPanel({ onUpload }) {
@@ -25,8 +30,15 @@ export default function AdminPanel({ onUpload }) {
 
   const processFile = (f) => {
     if (!f) return;
+    const isVid = f.type.startsWith('video');
+    const limit = isVid ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    const limitLabel = isVid ? `${MAX_VIDEO_MB} MB` : `${MAX_IMAGE_MB} MB`;
+    if (f.size > limit) {
+      showToast(`❌ File too large. Max ${limitLabel} for ${isVid ? 'videos' : 'images'}.`, 'error');
+      return;
+    }
     setFile(f);
-    const type = f.type.startsWith('video') ? 'video' : 'image';
+    const type = isVid ? 'video' : 'image';
     setMediaType(type);
     const url = URL.createObjectURL(f);
     setPreview({ url, type });
@@ -102,7 +114,7 @@ export default function AdminPanel({ onUpload }) {
         <div className="admin-drawer-header">
           <div>
             <h3 className="admin-drawer-title">Upload Media</h3>
-            <p className="admin-drawer-sub">Images & videos · max 100 MB</p>
+            <p className="admin-drawer-sub">Images max 10 MB · Videos max 50 MB</p>
           </div>
           <button className="admin-drawer-close" onClick={() => setOpen(false)}>✕</button>
         </div>
@@ -139,7 +151,7 @@ export default function AdminPanel({ onUpload }) {
             <div className="drop-placeholder">
               <div className="drop-icon">📁</div>
               <p className="drop-text">Drag & drop or <span>browse</span></p>
-              <p className="drop-hint">JPG, PNG, GIF, WEBP, MP4, WEBM · max 100 MB</p>
+              <p className="drop-hint">Images max {MAX_IMAGE_MB} MB · Videos max {MAX_VIDEO_MB} MB</p>
             </div>
           )}
           <input
