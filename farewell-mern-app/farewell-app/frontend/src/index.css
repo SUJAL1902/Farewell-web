@@ -85,3 +85,49 @@ button {
   pointer-events: none;
   z-index: 0;
 }
+
+/* ── Quote Banner ── */
+.quote-banner {
+  text-align: center;
+  padding: 100px 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.quote-banner-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  line-height: 1.5;
+  color: var(--charcoal);
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.quote-banner-text::before {
+  content: '“';
+  font-family: var(--font-display);
+  font-size: 5rem;
+  color: var(--amber-light);
+  position: absolute;
+  top: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-banner-author {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--rose);
+}
+
+@media (max-width: 768px) {
+  .quote-banner {
+    padding: 70px 16px;
+  }
+}

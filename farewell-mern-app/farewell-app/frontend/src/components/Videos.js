@@ -1,30 +1,44 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import './Videos.css';
 
 export default function Videos({ refresh }) {
   const [videos, setVideos] = useState([]);
+  const [toast, setToast]   = useState('');
   const { isAdmin }         = useAuth();
-  const sectionRef          = useRef();
 
   const fetchVideos = async () => {
     try {
       const { data } = await api.get('/media');
       setVideos(data.filter((m) => m.type === 'video'));
-    } catch {/* */ }
+    } catch { /* */ }
   };
 
   useEffect(() => { fetchVideos(); }, [refresh]);
 
-  const handleDelete = async (id) => {
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
     if (!window.confirm('Delete this video?')) return;
-    await api.delete(`/media/${id}`);
-    fetchVideos();
+    setVideos((prev) => prev.filter((v) => v._id !== id));
+    try {
+      await api.delete(`/media/${id}`);
+      showToast('Video deleted.');
+    } catch {
+      showToast('❌ Delete failed — are you logged in as admin?');
+      fetchVideos();
+    }
   };
 
   return (
-    <section id="videos" className="section" ref={sectionRef}>
+    <section id="videos" className="section">
+      {toast && <div className="video-toast">{toast}</div>}
+
       <div className="container">
         <div className="section-header">
           <span className="section-eyebrow">moving pictures</span>
@@ -35,7 +49,7 @@ export default function Videos({ refresh }) {
         {videos.length === 0 ? (
           <div className="empty-state">
             <span>🎬</span>
-            <p>{isAdmin ? 'Upload your first video using the admin panel ↓' : 'Videos coming soon…'}</p>
+            <p>{isAdmin ? 'Upload your first video using the panel →' : 'Videos coming soon…'}</p>
           </div>
         ) : (
           <div className="videos-grid">
@@ -47,12 +61,18 @@ export default function Videos({ refresh }) {
                     Your browser doesn't support video.
                   </video>
                 </div>
-                {vid.caption && <p className="video-caption">{vid.caption}</p>}
-                {isAdmin && (
-                  <button className="video-delete" onClick={() => handleDelete(vid._id)}>
-                    Delete
-                  </button>
-                )}
+                <div className="video-footer">
+                  {vid.caption && <p className="video-caption">{vid.caption}</p>}
+                  {isAdmin && (
+                    <button
+                      className="video-delete"
+                      onClick={(e) => handleDelete(e, vid._id)}
+                      title="Delete video"
+                    >
+                      🗑 Delete
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

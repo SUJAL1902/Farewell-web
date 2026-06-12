@@ -102,3 +102,21 @@
 }
 
 .quote-add-form button:hover { opacity: 0.88; }
+
+@media (max-width: 576px) {
+  .quote-add-form {
+    padding: 20px 16px;
+    gap: 12px;
+  }
+  .quote-add-form button {
+    align-self: stretch;
+    text-align: center;
+  }
+  .quote-card {
+    padding: 24px 20px 18px;
+  }
+  .quote-text {
+    font-size: 0.98rem;
+    margin-bottom: 16px;
+  }
+}
