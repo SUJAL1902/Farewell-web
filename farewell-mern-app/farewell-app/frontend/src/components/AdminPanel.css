@@ -1,0 +1,122 @@
+.admin-fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 200;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--amber), var(--rose));
+  color: white;
+  font-size: 1.3rem;
+  box-shadow: 0 8px 24px rgba(232,168,124,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 32px rgba(232,168,124,0.5);
+}
+
+.admin-panel {
+  position: fixed;
+  bottom: 100px;
+  right: 32px;
+  z-index: 199;
+  width: 320px;
+  background: rgba(253,246,237,0.96);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(232,168,124,0.30);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  opacity: 0;
+  transform: translateY(16px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.admin-panel.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+}
+
+.admin-panel-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--charcoal);
+}
+
+.admin-panel-sub {
+  font-size: 0.8rem;
+  color: var(--warm-gray);
+  margin-top: -8px;
+}
+
+.file-label {
+  display: block;
+  background: var(--cream);
+  border: 1.5px dashed var(--sand);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--warm-gray);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  word-break: break-all;
+}
+
+.file-label:hover {
+  border-color: var(--amber);
+  background: var(--cream-dark);
+}
+
+.admin-input {
+  background: var(--cream);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--charcoal);
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+.admin-msg {
+  font-size: 0.83rem;
+  color: var(--warm-gray);
+  font-style: italic;
+}
+
+.admin-upload-btn {
+  background: linear-gradient(135deg, var(--amber), var(--rose));
+  color: white;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  transition: opacity 0.2s;
+}
+
+.admin-upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.admin-upload-btn:hover:not(:disabled) { opacity: 0.88; }
+
+@media (max-width: 480px) {
+  .admin-panel { right: 16px; left: 16px; width: auto; bottom: 90px; }
+  .admin-fab { bottom: 20px; right: 20px; }
+}
