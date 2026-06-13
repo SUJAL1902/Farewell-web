@@ -19,13 +19,15 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/media', require('./routes/media'));
 app.use('/api/quotes', require('./routes/quotes'));
 
-// Connect DB & start server
+// Connect DB
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    app.listen(process.env.PORT, () =>
-      console.log(`🚀 Server running on http://localhost:${process.env.PORT}`)
-    );
-  })
+  .then(() => console.log('✅ MongoDB connected'))
   .catch((err) => console.error('❌ DB Error:', err));
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on http://localhost:${PORT}`)
+);
+
