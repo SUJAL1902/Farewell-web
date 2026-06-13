@@ -1,27 +1,40 @@
 const express = require('express');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Media = require('../models/Media');
 const { verifyAdmin, verifyGuest } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Cloudinary config
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Configure Cloudinary if credentials are present in env
+const useCloudinary = !!(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
 
-// Cloudinary storage (files stored permanently in the cloud)
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: (req, file) => ({
-    folder: 'farewell',
-    resource_type: file.mimetype.startsWith('video') ? 'video' : 'image',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'],
-  }),
+if (useCloudinary) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+
+// Local Multer storage for temporary uploads (or permanent if Cloudinary is disabled)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${uuidv4()}${ext}`);
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -71,18 +84,49 @@ router.post('/upload', verifyAdmin, (req, res, next) => {
     next();
   });
 }, async (req, res) => {
+  const tempFilePath = req.file.path;
   try {
     const isVideo = req.file.mimetype.startsWith('video');
+    
+    let url = `/uploads/${req.file.filename}`;
+    let filename = req.file.filename;
+
+    if (useCloudinary) {
+      const uploadOpts = {
+        resource_type: isVideo ? 'video' : 'image',
+        folder: 'farewell2226',
+      };
+      
+      const result = await cloudinary.uploader.upload(tempFilePath, uploadOpts);
+      url = result.secure_url;
+      filename = result.public_id;
+
+      // Delete the temporary file from local disk
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (unlinkErr) {
+        console.error('Failed to delete temporary local file after Cloudinary upload:', unlinkErr);
+      }
+    }
+
     const media = await Media.create({
       type: isVideo ? 'video' : 'image',
-      filename: req.file.filename,   // Cloudinary public_id
+      filename,
       originalName: req.file.originalname,
       caption: req.body.caption || '',
-      url: req.file.path,            // Full Cloudinary HTTPS URL
+      url,
     });
 
     res.status(201).json(media);
   } catch (err) {
+    // If saving/uploading failed, clean up local temp file
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (unlinkErr) {
+        console.error('Failed to delete temp file on upload error:', unlinkErr);
+      }
+    }
     res.status(500).json({ message: err.message });
   }
 });
@@ -93,10 +137,14 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
     const media = await Media.findById(req.params.id);
     if (!media) return res.status(404).json({ message: 'Not found' });
 
-    // Delete from Cloudinary
-    const resourceType = media.type === 'video' ? 'video' : 'image';
-    if (media.filename) {
+    const isCloudinary = media.url.startsWith('http') && useCloudinary;
+    if (isCloudinary) {
+      const resourceType = media.type === 'video' ? 'video' : 'image';
       await cloudinary.uploader.destroy(media.filename, { resource_type: resourceType });
+    } else {
+      // Local storage cleanup
+      const filePath = path.join(__dirname, '../uploads', media.filename);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
     await media.deleteOne();
